@@ -15,7 +15,7 @@ use smallvec::{smallvec, SmallVec};
 use zerocopy::AsBytes;
 
 const INLINE_DATA_THRESHOLD: usize = size_of::<u64>() * 4;
-pub(crate) type ResponseBuf = SmallVec<[u8; INLINE_DATA_THRESHOLD]>;
+pub type ResponseBuf = SmallVec<[u8; INLINE_DATA_THRESHOLD]>;
 
 #[derive(Debug)]
 pub enum Response {
@@ -25,7 +25,7 @@ pub enum Response {
 
 #[must_use]
 impl Response {
-    pub(crate) fn with_iovec<F: FnOnce(&[IoSlice<'_>]) -> T, T>(
+    pub fn with_iovec<F: FnOnce(&[IoSlice<'_>]) -> T, T>(
         &self,
         unique: RequestId,
         f: F,
@@ -54,15 +54,15 @@ impl Response {
     }
 
     // Constructors
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self::Error(0)
     }
 
-    pub(crate) fn new_error(error: Errno) -> Self {
+    pub fn new_error(error: Errno) -> Self {
         Self::Error(error.into())
     }
 
-    pub(crate) fn new_data<T: AsRef<[u8]> + Into<Vec<u8>>>(data: T) -> Self {
+    pub fn new_data<T: AsRef<[u8]> + Into<Vec<u8>>>(data: T) -> Self {
         Self::Data(if data.as_ref().len() <= INLINE_DATA_THRESHOLD {
             data.as_ref().into()
         } else {
@@ -70,7 +70,7 @@ impl Response {
         })
     }
 
-    pub(crate) fn new_entry(
+    pub fn new_entry(
         ino: INodeNo,
         generation: Generation,
         attr: &Attr,
@@ -89,7 +89,7 @@ impl Response {
         Self::from_struct(d.as_bytes())
     }
 
-    pub(crate) fn new_attr(ttl: &Duration, attr: &Attr) -> Self {
+    pub fn new_attr(ttl: &Duration, attr: &Attr) -> Self {
         let r = abi::fuse_attr_out {
             attr_valid: ttl.as_secs(),
             attr_valid_nsec: ttl.subsec_nanos(),
@@ -100,7 +100,7 @@ impl Response {
     }
 
     #[cfg(target_os = "macos")]
-    pub(crate) fn new_xtimes(bkuptime: SystemTime, crtime: SystemTime) -> Self {
+    pub fn new_xtimes(bkuptime: SystemTime, crtime: SystemTime) -> Self {
         let (bkuptime_secs, bkuptime_nanos) = time_from_system_time(&bkuptime);
         let (crtime_secs, crtime_nanos) = time_from_system_time(&crtime);
         let r = abi::fuse_getxtimes_out {
@@ -113,7 +113,7 @@ impl Response {
     }
 
     // TODO: Could flags be more strongly typed?
-    pub(crate) fn new_open(fh: FileHandle, flags: u32) -> Self {
+    pub fn new_open(fh: FileHandle, flags: u32) -> Self {
         let r = abi::fuse_open_out {
             fh: fh.into(),
             open_flags: flags,
@@ -122,7 +122,7 @@ impl Response {
         Self::from_struct(&r)
     }
 
-    pub(crate) fn new_lock(lock: &Lock) -> Self {
+    pub fn new_lock(lock: &Lock) -> Self {
         let r = abi::fuse_lk_out {
             lk: abi::fuse_file_lock {
                 start: lock.range.0,
@@ -134,12 +134,12 @@ impl Response {
         Self::from_struct(&r)
     }
 
-    pub(crate) fn new_bmap(block: u64) -> Self {
+    pub fn new_bmap(block: u64) -> Self {
         let r = abi::fuse_bmap_out { block };
         Self::from_struct(&r)
     }
 
-    pub(crate) fn new_write(written: u32) -> Self {
+    pub fn new_write(written: u32) -> Self {
         let r = abi::fuse_write_out {
             size: written,
             padding: 0,
@@ -148,7 +148,7 @@ impl Response {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_statfs(
+    pub fn new_statfs(
         blocks: u64,
         bfree: u64,
         bavail: u64,
@@ -176,7 +176,7 @@ impl Response {
     }
 
     // TODO: Can flags be more strongly typed?
-    pub(crate) fn new_create(
+    pub fn new_create(
         ttl: &Duration,
         attr: &Attr,
         generation: Generation,
@@ -203,7 +203,7 @@ impl Response {
     }
 
     // TODO: Are you allowed to send data while result != 0?
-    pub(crate) fn new_ioctl(result: i32, data: &[IoSlice<'_>]) -> Self {
+    pub fn new_ioctl(result: i32, data: &[IoSlice<'_>]) -> Self {
         let r = abi::fuse_ioctl_out {
             result,
             // these fields are only needed for unrestricted ioctls
@@ -224,12 +224,12 @@ impl Response {
         Self::Data(list.buf)
     }
 
-    pub(crate) fn new_xattr_size(size: u32) -> Self {
+    pub fn new_xattr_size(size: u32) -> Self {
         let r = abi::fuse_getxattr_out { size, padding: 0 };
         Self::from_struct(&r)
     }
 
-    pub(crate) fn new_lseek(offset: i64) -> Self {
+    pub fn new_lseek(offset: i64) -> Self {
         let r = abi::fuse_lseek_out { offset };
         Self::from_struct(&r)
     }
@@ -239,7 +239,7 @@ impl Response {
     }
 }
 
-pub(crate) fn time_from_system_time(system_time: &SystemTime) -> (i64, u32) {
+pub fn time_from_system_time(system_time: &SystemTime) -> (i64, u32) {
     // Convert to signed 64-bit time with epoch at 0
     match system_time.duration_since(UNIX_EPOCH) {
         Ok(duration) => (duration.as_secs() as i64, duration.subsec_nanos()),
@@ -253,7 +253,7 @@ pub(crate) fn time_from_system_time(system_time: &SystemTime) -> (i64, u32) {
 // But others like macOS x86_64 have mode_t = u16, requiring a typecast.  So, just silence lint.
 #[allow(trivial_numeric_casts)]
 /// Returns the mode for a given file kind and permission
-pub(crate) fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
+pub fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
     (match kind {
         FileType::NamedPipe => libc::S_IFIFO,
         FileType::CharDevice => libc::S_IFCHR,
@@ -266,7 +266,7 @@ pub(crate) fn mode_from_kind_and_perm(kind: FileType, perm: u16) -> u32 {
         | perm as u32
 }
 /// Returns a fuse_attr from FileAttr
-pub(crate) fn fuse_attr_from_attr(attr: &crate::FileAttr) -> abi::fuse_attr {
+pub fn fuse_attr_from_attr(attr: &crate::FileAttr) -> abi::fuse_attr {
     let (atime_secs, atime_nanos) = time_from_system_time(&attr.atime);
     let (mtime_secs, mtime_nanos) = time_from_system_time(&attr.mtime);
     let (ctime_secs, ctime_nanos) = time_from_system_time(&attr.ctime);
@@ -304,7 +304,7 @@ pub(crate) fn fuse_attr_from_attr(attr: &crate::FileAttr) -> abi::fuse_attr {
 // TODO: Add methods for creating this without making a `FileAttr` first.
 #[derive(Debug, Clone, Copy)]
 pub struct Attr {
-    pub(crate) attr: abi::fuse_attr,
+    pub attr: abi::fuse_attr,
 }
 impl From<&crate::FileAttr> for Attr {
     fn from(attr: &crate::FileAttr) -> Self {
@@ -390,7 +390,7 @@ impl From<DirEntList> for Response {
 }
 
 impl DirEntList {
-    pub(crate) fn new(max_size: usize) -> Self {
+    pub fn new(max_size: usize) -> Self {
         Self(EntListBuf::new(max_size))
     }
     /// Add an entry to the directory reply buffer. Returns true if the buffer is full.
@@ -453,7 +453,7 @@ impl From<DirEntPlusList> for Response {
 }
 
 impl DirEntPlusList {
-    pub(crate) fn new(max_size: usize) -> Self {
+    pub fn new(max_size: usize) -> Self {
         Self(EntListBuf::new(max_size))
     }
     /// Add an entry to the directory reply buffer. Returns true if the buffer is full.
