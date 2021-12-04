@@ -43,7 +43,7 @@ use std::cmp::max;
 use std::cmp::min;
 
 mod channel;
-mod ll;
+pub mod ll;
 mod mnt;
 mod reply;
 mod request;
