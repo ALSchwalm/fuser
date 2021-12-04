@@ -27,7 +27,7 @@ use mount_options::MountOption;
 /// Helper function to provide options as a fuse_args struct
 /// (which contains an argc count and an argv pointer)
 #[cfg(any(feature = "libfuse", test))]
-fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[MountOption], f: F) -> T {
+pub fn with_fuse_args<T, F: FnOnce(&fuse_args) -> T>(options: &[MountOption], f: F) -> T {
     use mount_options::option_to_string;
     use std::ffi::CString;
 
@@ -119,7 +119,7 @@ fn is_mounted(fuse_device: &File) -> bool {
 
 /// Ensures that an os error is never 0/Success
 #[cfg(feature = "libfuse3")]
-fn ensure_last_os_error() -> io::Error {
+pub fn ensure_last_os_error() -> io::Error {
     let err = io::Error::last_os_error();
     match err.raw_os_error() {
         Some(0) => io::Error::new(io::ErrorKind::Other, "Unspecified Error"),

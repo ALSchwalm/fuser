@@ -44,7 +44,7 @@ use std::cmp::min;
 
 mod channel;
 pub mod ll;
-mod mnt;
+pub mod mnt;
 mod reply;
 mod request;
 mod session;
