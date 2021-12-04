@@ -151,7 +151,7 @@ pub struct KernelConfig {
 }
 
 impl KernelConfig {
-    fn new(capabilities: u32, max_readahead: u32) -> Self {
+    pub fn new(capabilities: u32, max_readahead: u32) -> Self {
         Self {
             capabilities,
             requested: default_init_flags(capabilities),
