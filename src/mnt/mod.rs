@@ -3,13 +3,13 @@
 //! Raw communication channel to the FUSE kernel driver.
 
 #[cfg(feature = "libfuse2")]
-mod fuse2;
+pub mod fuse2;
 #[cfg(any(feature = "libfuse", test))]
-mod fuse2_sys;
+pub mod fuse2_sys;
 #[cfg(feature = "libfuse3")]
-mod fuse3;
+pub mod fuse3;
 #[cfg(feature = "libfuse3")]
-mod fuse3_sys;
+pub mod fuse3_sys;
 
 #[cfg(not(feature = "libfuse"))]
 mod fuse_pure;
